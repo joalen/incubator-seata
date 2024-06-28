@@ -63,6 +63,8 @@ jobs:
       run: |
         #!/bin/bash
 
+        set +e 
+        
         directory=$(pwd)
         runjpf_jar="/tmp/jpf-core/build/RunJPF.jar"
         jar_files=$(find "$directory" -type f -name "*.jar")
