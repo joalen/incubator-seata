@@ -24,6 +24,18 @@ jobs:
         java-version: '17'
         cache: maven
 
+    - name: Install Dependencies (macOS)
+      run: |
+          wget https://github.com/macports/macports-base/releases/download/v2.9.3/MacPorts-2.9.3.tar.gz
+          tar -xvzf MacPorts-2.9.3.tar.gz
+          cd MacPorts-2.9.3
+          ./configure && make && sudo make install 
+          cd ../ && rm -rf MacPorts-2.9.3*
+          echo 'export PATH="/opt/local/bin:$PATH"' >> ~/.bash_profile
+          source ~/.bash_profile
+          sudo port -v selfupdate
+          sudo port install protobuf-c
+        
     - name: Build project with JDK 17 
       run: mvn clean install -DskipTests
 
