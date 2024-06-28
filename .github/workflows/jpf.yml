@@ -25,6 +25,7 @@ jobs:
         cache: maven
 
     - name: Install Dependencies (macOS)
+      if: runner.os == 'macOS'
       run: |
           wget https://github.com/macports/macports-base/releases/download/v2.9.3/MacPorts-2.9.3.tar.gz
           tar -xvzf MacPorts-2.9.3.tar.gz
