@@ -34,7 +34,7 @@ jobs:
         java-version: '11'
 
     - name: Adjust symbolic links to JDK 11 (macOS) 
-      if: runner.os == "macOS"
+      if: runner.os == 'macOS'
       run: | 
         sudo rm /System/Library/Frameworks/JavaVM.framework/Versions/Current
         sudo ln -s /Library/Java/JavaVirtualMachines/jdk-11.jdk/Contents/Home /System/Library/Frameworks/JavaVM.framework/Versions/Current
