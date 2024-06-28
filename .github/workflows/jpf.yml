@@ -1,0 +1,57 @@
+name: JPF Runner
+
+on:
+  push:
+
+jobs:
+  run-jpf:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        ref: 4f16097d6934aeac324f524558661677bd755f5c
+  
+    - name: Set up JDK 17 for project
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        cache: maven
+
+    - name: Build project with JDK 17 
+      run: mvn clean install -DskipTests
+
+    - name: Set up JDK 11 for JPF
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+
+    - name: Clone and build jpf-core
+      run: |
+        git clone https://github.com/javapathfinder/jpf-core.git /tmp/jpf-core
+        cd /tmp/jpf-core
+        ./gradlew buildJars
+
+    - name: Run JPF on JAR files
+      run: |
+        #!/bin/bash
+
+        directory=$(pwd)
+        runjpf_jar="/tmp/jpf-core/build/RunJPF.jar"
+        jar_files=$(find "$directory" -type f -name "*.jar")
+
+        for jar_file in $jar_files; 
+        do
+            jar_dir=$(dirname "$jar_file")
+            main_class=$(unzip -p "$jar_file" META-INF/MANIFEST.MF | grep -i 'Main-Class' | awk -F': ' '{print $2}' | tr -d '\r')
+
+            if [ -z "$main_class" ]; then
+                continue
+            fi
+
+            command="java -jar $runjpf_jar +classpath=$jar_file $main_class"
+            $command
+        done
