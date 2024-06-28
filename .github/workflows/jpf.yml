@@ -59,6 +59,7 @@ jobs:
         ./gradlew buildJars
 
     - name: Run JPF on JAR files
+      shell: bash
       run: |
         #!/bin/bash
 
