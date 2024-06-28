@@ -4,7 +4,7 @@ on:
   push:
 
 jobs:
-  run-asan:
+  run-jpf:
     name: '${{ matrix.os }}'
     runs-on: ${{ matrix.os }}
     strategy:
