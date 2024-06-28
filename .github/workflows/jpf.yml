@@ -1,11 +1,15 @@
-name: JPF Runner
+name: Run JPF
 
 on:
   push:
 
 jobs:
-  run-jpf:
-    runs-on: ubuntu-latest
+  run-asan:
+    name: '${{ matrix.os }}'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
     - name: Checkout repository
@@ -29,6 +33,12 @@ jobs:
         distribution: 'temurin'
         java-version: '11'
 
+    - name: Adjust symbolic links to JDK 11 (macOS) 
+      if: runner.os == "macOS"
+      run: | 
+        sudo rm /System/Library/Frameworks/JavaVM.framework/Versions/Current
+        sudo ln -s /Library/Java/JavaVirtualMachines/jdk-11.jdk/Contents/Home /System/Library/Frameworks/JavaVM.framework/Versions/Current
+  
     - name: Clone and build jpf-core
       run: |
         git clone https://github.com/javapathfinder/jpf-core.git /tmp/jpf-core
