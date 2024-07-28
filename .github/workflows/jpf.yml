@@ -73,5 +73,5 @@ jobs:
             fi
 
             command="java -jar $runjpf_jar +classpath=$jar_file $main_class"
-            $command
+            $command > "${main_class}_jpf_report.txt"
         done
