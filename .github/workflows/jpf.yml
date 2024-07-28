@@ -56,22 +56,30 @@ jobs:
       shell: bash
       run: |
         #!/bin/bash
-
         set +e 
-        
+
+        mkdir jpf_reports
         directory=$(pwd)
         runjpf_jar="/tmp/jpf-core/build/RunJPF.jar"
         jar_files=$(find "$directory" -type f -name "*.jar")
-
-        for jar_file in $jar_files; 
-        do
-            jar_dir=$(dirname "$jar_file")
+        
+        for jar_file in $jar_files; do
+            if ! unzip -l "$jar_file" 2>/dev/null | grep -q "META-INF/MANIFEST.MF"; then
+                continue
+            fi
+            
             main_class=$(unzip -p "$jar_file" META-INF/MANIFEST.MF | grep -i 'Main-Class' | awk -F': ' '{print $2}' | tr -d '\r')
-
+            
             if [ -z "$main_class" ]; then
                 continue
             fi
-
-            command="java -jar $runjpf_jar +classpath=$jar_file $main_class"
-            $command
+            
+            command="java -jar $runjpf_jar +classpath=$jar_file $main_class" 
+            $command > "./jpf_reports/${main_class}_jpf_report.txt"
         done
+
+    - name: Upload JPF reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: jpf-report-${{ github.event.repository.name}}-on-${{ matrix.os }}-from_branch_${{ github.ref_name }}
+        path: './jpf_reports/*'
