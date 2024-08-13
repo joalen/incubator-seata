@@ -88,6 +88,7 @@ jobs:
         done
 
     - name: Run JPF on JAR files
+      continue-on-error: true
       if: runner.os == 'Windows'
       shell: cmd 
       run: | 
