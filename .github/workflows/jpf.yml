@@ -13,12 +13,12 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         ref: 4f16097d6934aeac324f524558661677bd755f5c
   
     - name: Set up JDK 17 for project
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '17'
@@ -41,7 +41,7 @@ jobs:
       run: mvn clean install -DskipTests
 
     - name: Set up JDK 11 for JPF
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '11'
@@ -66,24 +66,25 @@ jobs:
       run: |
         #!/bin/bash
         set +e 
-        mkdir jpf_reports
+        mkdir -p jpf_reports
         directory=$(pwd)
         runjpf_jar="/tmp/jpf-core/build/RunJPF.jar"
         jar_files=$(find "$directory" -type f -name "*.jar")
-        
         for jar_file in $jar_files; do
             if ! unzip -l "$jar_file" 2>/dev/null | grep -q "META-INF/MANIFEST.MF"; then
                 continue
             fi
-            
             main_class=$(unzip -p "$jar_file" META-INF/MANIFEST.MF | grep -i 'Main-Class' | awk -F': ' '{print $2}' | tr -d '\r')
-            
             if [ -z "$main_class" ]; then
                 continue
             fi
             
+            if echo "$main_class" | grep -Eiq 'org\.springframework|io\.quarkus'; then
+                continue
+            fi
+            safe_main_class=$(echo "$main_class" | tr -d '\r' | tr -d '\n' | sed 's/[\/:*?"<>|]/_/g')
             command="java -jar $runjpf_jar +classpath=$jar_file $main_class" 
-            $command > "./jpf_reports/${main_class}_jpf_report.txt"
+            $command > "./jpf_reports/${safe_main_class}_jpf_report.txt"
         done
 
     - name: Run JPF on JAR files
@@ -110,8 +111,11 @@ jobs:
                             set "main_class=%%j"
                             set "main_class=!main_class: =!"
                             set "main_class=!main_class:"=!%%"
-        
-                            java -jar "%runjpf_jar%" +classpath="%%i" !main_class! > "jpf_reports\!main_class!_jpf_report.txt"
+                            
+                            echo !main_class! | findstr /i /r "org\.springframework\|io\.quarkus" >nul 2>&1
+                            if !errorlevel! neq 0 (
+                                java -jar "%runjpf_jar%" +classpath="%%i" !main_class! > "jpf_reports\!main_class!_jpf_report.txt"
+                            )
                         )
                     )
                     rmdir /s /q META-INF
@@ -122,7 +126,15 @@ jobs:
         endlocal
 
     - name: Upload JPF reports
+      if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
       uses: actions/upload-artifact@v4
       with:
         name: jpf-report-${{ github.event.repository.name}}-on-${{ matrix.os }}-from_branch_${{ github.ref_name }}
         path: './jpf_reports/*'
+
+    - name: Upload JPF reports
+      if: ${{ runner.os == 'Windows' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: jpf-report-${{ github.event.repository.name }}-on-${{ matrix.os }}-from_branch_${{ github.ref_name }}
+        path: 'jpf_reports'
